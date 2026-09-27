@@ -1,0 +1,12 @@
+# Compiled executable
+*.exe
+
+# Object files
+*.o
+*.obj
+
+# VS Code
+.vscode/
+
+# Windows
+Thumbs.dbgit status

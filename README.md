@@ -1,57 +1,34 @@
-# EARES paper-based C++ implementation — corrected source transcription
+# EARES workflow scheduling example
 
-This is a plain C++17 implementation of the EARES motivational example from:
+This single-file C++17 implementation accompanies the motivational example in Longxin Zhang, Minghui Ai, Ke Liu, Jianguo Chen, and Kenli Li, "Reliability Enhancement Strategies for Workflow Scheduling Under Energy Consumption Constraints in Clouds," *IEEE Transactions on Sustainable Computing*, vol. 9, no. 2, pp. 155-169, 2024, doi: [10.1109/TSUSC.2023.3314759](https://doi.org/10.1109/TSUSC.2023.3314759). It uses Fig. 1 and Tables II-IV as its example inputs and reference outputs.
 
-Longxin Zhang et al., *Reliability Enhancement Strategies for Workflow Scheduling Under Energy Consumption Constraints in Clouds*, IEEE Transactions on Sustainable Computing, 2024.
+## Build and run
 
-## Files
-
-```text
-eares-paper-exact/
-├── main.cpp
-├── eares.h
-├── graph.cpp
-├── rank.cpp
-├── timing.cpp
-├── energy.cpp
-├── reliability.cpp
-├── scheduler.cpp
-└── README.md
-```
-
-There is **no CMake** and no `.hpp` file. The single `.h` file only contains shared declarations and constants so the `.cpp` files can be compiled directly with `g++`.
-
-## Build on Windows / VS Code
-
-Open PowerShell in this folder and run:
+With MinGW g++ in PowerShell:
 
 ```powershell
-g++ -std=c++17 main.cpp graph.cpp rank.cpp timing.cpp energy.cpp reliability.cpp scheduler.cpp -o eares.exe
-.\eares.exe
+make
+.\eares_example.exe
 ```
 
-## Paper equations implemented
+This uses MinGW/MSYS GNU Make and g++. Or compile directly:
 
-- Eq. (1)-(3): communication cost and average bandwidth.
-- Eq. (4): execution time at normalized frequency.
-- Eq. (7): task energy.
-- Eq. (10)-(13): checkpoint count, interval, best execution time, worst execution time.
-- Eq. (14)-(18): Poisson transient-fault reliability and workflow reliability.
-- Eq. (19): URank.
-- Eq. (23)-(29): deadline partitioning.
-- Eq. (30)-(36): energy partitioning and dynamic `Egiven(ti)`.
-- Algorithm 1: workflow initialization.
-- Algorithm 2: deadline partitioning.
-- Algorithm 3: energy partitioning and VM/frequency selection.
+```powershell
+g++ -std=c++17 -O2 -Wall -Wextra main.cpp -o eares_example.exe
+```
 
-## Important source limitations / paper inconsistencies
+## Output modes
 
-The motivational example gives the VM power parameters, the WCET table, `D=110`, `Egoal=80`, `b=1 Gbps`, `Oc=0.1`, and the frequency precision, but it does not give one numerical value for the fault-rate sensitivity `d` or for each VM's `lambda_fmax` used for that example. The paper's later Table V gives ranges for experimental settings, not a single motivational-example value.
+The default run calculates deadlines, energy budgets, and a schedule using the paper's equations. Use `--deadlines table --energy table` to supply the per-task limits printed in Table IV while computing the VM/frequency choices. Use `--reference` to print Table IV and its summary verbatim; reference mode is a transcription for comparison, not a computed result.
 
-Therefore the code does **not** silently invent those values. `DEFAULT_LAMBDA_FMAX` and `DEFAULT_FAULT_SENSITIVITY` are explicit constants in `eares.h` and can be changed.
+The computed schedule and summary can differ from Table IV. `--comm` includes inter-VM communication time in the scheduler's finish-time check.
 
-Also, the paper's motivational Table IV contains numerical values that are not all exactly reproducible from Tables II/III and the printed equations. The implementation follows the printed equations and the workflow data rather than hard-coding Table IV's final VM assignments.
+## Reproducibility notes
 
-The paper has an internal wording conflict: Definition 7 / Algorithm 1 say nondescending URank, while the motivational example explicitly schedules in descending URank order. This implementation follows the motivational example and therefore sorts URank in descending order.
+- The task execution times, graph, VM power parameters, deadline, and energy goal are transcribed in `example_data.cpp`. Communication delay is data volume divided by the configured bandwidth.
+- The paper does not publish the example's fault-rate parameters `lambda_fmax` or sensitivity `d`. Table V gives only experiment ranges for `lambda_fmax` and no value for `d`; computed reliabilities therefore depend on the explicit illustrative assumptions in `example_data.cpp`.
+- Table III specifies VM2 `Cef = 0.80`, while its Table IV energy values match `Cef = 0.70`. The implementation uses the Table III value in computed mode and preserves Table IV values only in reference mode.
+- Pass `--deadlines table --energy table` to use Table IV's task deadlines and energy allowances as constraints. The checkpoint equations affect execution time and reliability, so computed results need not duplicate every Table IV entry. The rounded task energies in Table IV sum to 72.9111, while the paper reports 72.9112.
+- The exact makespan `82.11` and workflow reliability `0.9751` are paper-reported values in reference mode. Computed mode reports metrics from the implemented equations and the explicit input assumptions.
 
-Eq. (10) is implemented with the paper's printed ceiling operation: N = ceil((Ku/Oc) × ET) − 1.
+For a new workflow or an independent evaluation, replace the example data and provide independently justified reliability parameters. The motivational example cannot be an exact independent reproduction without the missing fault parameters and a resolution of the VM2 `Cef` discrepancy.

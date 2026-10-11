@@ -1,0 +1,15 @@
+# Compiled executables
+*.exe
+*.o
+*.obj
+*.dll
+*.so
+
+# Debug and build output
+build/
+out/
+.vscode/
+
+# OS files
+.DS_Store
+Thumbs.db

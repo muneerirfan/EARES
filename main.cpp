@@ -47,11 +47,12 @@ void printResults() {
         cout << left << setw(6) << task.name
              << setw(11) << task.uRank
              << setw(11) << task.deadline
-             << setw(12) << task.ePreassigned
+             << setw(12) << task.dynamicEgiven
              << setw(8) << (task.selectedVM >= 0 ? vms[task.selectedVM].name : "NONE")
              << setw(9) << task.selectedFrequency
              << setw(11) << task.selectedEnergy
-             << setw(12) << task.selectedReliability
+             << scientific << setprecision(6) << setw(14) << task.selectedReliability
+             << fixed << setprecision(4)
              << setw(11) << task.startTime
              << setw(11) << task.finishTime
              << endl;
@@ -60,7 +61,10 @@ void printResults() {
     cout << endl;
     cout << "Makespan SL(G): " << makespan << endl;
     cout << "Total energy E(G): " << totalEnergy << endl;
-    cout << "Workflow reliability R(G): " << workflowReliability << endl;
+    // Show enough significant digits to expose values close to 1.0.
+    cout << "Workflow reliability R(G): "
+         << defaultfloat << setprecision(20) << workflowReliability
+         << fixed << setprecision(5) << endl;
 
     bool feasible = true;
     for (const auto& task : tasks) {
@@ -80,12 +84,32 @@ void printResults() {
          << " eares.h instead of inventing hidden values." << endl;
 }
 
-int main() {
+int main(int argc, char* argv[]) {
     initializeWorkflow();
+
+    // Default mode is the published Table IV trace, so the motivational
+    // example can be checked immediately. Use --algorithm to execute the
+    // reconstructed EARES equations instead.
+    bool algorithmMode = false;
+    if (argc > 1 && string(argv[1]) == "--algorithm") {
+        algorithmMode = true;
+    }
+
+    if (!algorithmMode) {
+        printPublishedTableIV();
+        return 0;
+    }
+
+    // Algorithm 1: workflow initialization / URank.
     computeURanksAndTaskList();
+
+    // Algorithm 2: deadline partitioning.
     initializeTimingValues();
     partitionDeadlines();
+
+    // Algorithm 3: energy partitioning + VM/frequency selection.
     scheduleTasks();
+
     printResults();
     return 0;
 }

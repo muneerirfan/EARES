@@ -60,6 +60,7 @@ struct Task {
     double eMin = 0.0;
     double eLevel = 0.0;
     double ePreassigned = 0.0;
+    double dynamicEgiven = 0.0;
 
     int selectedVM = -1;
     double selectedFrequency = 0.0;
@@ -103,5 +104,6 @@ double workflowReliabilityValue();
 
 void scheduleTasks();
 void printResults();
+void printPublishedTableIV();
 
 #endif

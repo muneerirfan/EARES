@@ -15,6 +15,17 @@ static double actualStartTime(int taskId, int vmId, const vector<double>& finish
     return start;
 }
 
+//added after actualstarttime
+static bool allPredecessorsScheduled(int taskId) {
+    for (int pred : tasks[taskId].predecessors) {
+        if (tasks[pred].selectedVM < 0) {
+            return false;
+        }
+    }
+    return true;
+}
+
+
 void scheduleTasks() {
     // Eqs. (30)-(36) are evaluated before scheduling.
     computeEnergyPartitions();
@@ -26,12 +37,25 @@ void scheduleTasks() {
     for (int position = 0; position < static_cast<int>(taskList.size()); ++position) {
         int taskId = taskList[position];
 
+        //added newly
+    if (!allPredecessorsScheduled(taskId)) {
+        tasks[taskId].selectedVM = -1;
+        tasks[taskId].selectedFrequency = 0.0;
+        tasks[taskId].selectedEnergy = 0.0;
+        tasks[taskId].selectedReliability = 0.0;
+        tasks[taskId].startTime = 0.0;
+        tasks[taskId].finishTime = 0.0;
+        continue;
+    }
+
+
         // Eq. (36): Egiven(ti) = Egiven(G) - sum(completed E)
         //             - sum(preassigned unfinished Ep).
         double given = WORKFLOW_ENERGY - consumedEnergy;
         for (int future = position + 1; future < static_cast<int>(taskList.size()); ++future) {
             given -= tasks[taskList[future]].ePreassigned;
         }
+        tasks[taskId].dynamicEgiven = given;
 
         double bestReliability = -1.0;
         int bestVM = -1;
@@ -58,8 +82,8 @@ void scheduleTasks() {
                 double finish = start + executionTime(taskId, vmId, frequency);
 
                 // Algorithm 3, line 14: highest reliability while AFT < d(ti).
-                if (reliability > bestReliability + 1e-12
-                    && finish < tasks[taskId].deadline + 1e-9) {
+                if (reliability > bestReliability
+                    && finish < tasks[taskId].deadline) {
                     bestReliability = reliability;
                     bestVM = vmId;
                     bestFrequency = frequency;

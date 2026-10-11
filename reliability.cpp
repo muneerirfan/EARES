@@ -27,15 +27,16 @@ double taskReliability(int taskId, int vmId, double frequency) {
     double lambda = vms[vmId].lambdaFMax
                   * pow(10.0, DEFAULT_FAULT_SENSITIVITY * ratio);
 
-    // Eqs. (16)-(17).
-    double reliability = 0.0;
-    for (int g = 0; g <= KU; ++g) {
-        double pg = poissonProbability(g, lambda, etWorst);
-        double recovered = exp(-lambda * interval);
-        reliability += pg * recovered;
-    }
+   // Eqs. (16)-(17). changed
+double reliability = 0.0;
 
-    return reliability;
+for (int g = 0; g <= KU; ++g) {
+    double pg = poissonProbability(g, lambda, etWorst);
+    double recovered = exp(-lambda * g * interval);
+    reliability += pg * recovered;
+}
+
+return reliability;
 }
 
 double workflowReliabilityValue() {

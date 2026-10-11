@@ -1,12 +1,15 @@
-# Compiled executable
+# Compiled executables
 *.exe
-
-# Object files
 *.o
 *.obj
+*.dll
+*.so
 
-# VS Code
+# Debug and build output
+build/
+out/
 .vscode/
 
-# Windows
-Thumbs.dbgit status
+# OS files
+.DS_Store
+Thumbs.db

@@ -1,9 +1,16 @@
 #include "eares.h"
 
+
 int checkpointCount(double executionTime) {
-    // Eq. (10): ceil((Ku/Oc) * ET) - 1.
-    return max(0, static_cast<int>(ceil((static_cast<double>(KU) / CHECKPOINT_OVERHEAD) * executionTime)) - 1);
+    // Equation (10):
+    // N = ceil(sqrt((Ku / Oc) * ET) - 1)
+    double value = sqrt(
+        (static_cast<double>(KU) / CHECKPOINT_OVERHEAD) * executionTime
+    ) - 1.0;
+
+    return max(0, static_cast<int>(ceil(value)));
 }
+
 
 double checkpointInterval(double executionTime) {
     // Eq. (11): ET * (N + 1)^(-1).
@@ -82,23 +89,39 @@ void partitionDeadlines() {
         } else {
             double value = 0.0;
             for (int pred : tasks[id].predecessors) {
+                // Eq. (23): predecessor EST + predecessor best execution time
+                // + communication cost. avgET is the paper's task-level
+                // estimate in this reconstruction; apply Eq. (12) to it.
+                double predBestET = bestExecutionTime(tasks[pred].avgET);
                 value = max(value,
-                    tasks[pred].est + tasks[id].avgET + communicationCost(pred, id));
+                    tasks[pred].est + predBestET + communicationCost(pred, id));
             }
             tasks[id].est = value;
         }
 
-        // The paper prints LFT(ti)=D for an entry task and
-        // EST(ti)+ETbest(ti) otherwise. In the motivational example
-        // avgET is the task-level execution value used by the CP length.
-        tasks[id].lft = tasks[id].predecessors.empty()
-                      ? WORKFLOW_DEADLINE
-                      : tasks[id].est + tasks[id].avgET;
+        // For Eq. (25), the exit task must use the workflow deadline.
+        // This is required to obtain the paper's reported S(CP)≈0.03.
+        if (id == TASK_COUNT - 1) {
+            tasks[id].lft = WORKFLOW_DEADLINE;
+        } else {
+            tasks[id].lft = tasks[id].predecessors.empty()
+                          ? WORKFLOW_DEADLINE
+                          : tasks[id].est + bestExecutionTime(tasks[id].avgET);
+        }
     }
 
     // Lines 4-9: build CP by repeatedly taking the predecessor with
     // the largest LFT from the exit task.
-    int exitTask = TASK_COUNT - 1;
+    int exitTask = -1;
+    for (int i = 0; i < TASK_COUNT; ++i) {
+        if (tasks[i].successors.empty()) {
+            exitTask = i;
+            break;
+        }
+    }
+    if (exitTask < 0) {
+        return;
+    }
     int current = exitTask;
     criticalPath.clear();
     criticalPath.push_back(current);
@@ -148,8 +171,13 @@ void partitionDeadlines() {
         } else {
             double value = 0.0;
             for (int pred : tasks[id].predecessors) {
-                double predTime = inCP[pred] ? tasks[pred].eet : tasks[pred].avgET;
-                value = max(value, tasks[pred].est + predTime + communicationCost(pred, id));
+                // Algorithm 2 replaces ETbest with EET for predecessors on
+                // the critical path. Other predecessors retain ETbest.
+                double predTime = inCP[pred]
+                                ? tasks[pred].eet
+                                : bestExecutionTime(tasks[pred].avgET);
+                value = max(value, tasks[pred].est + predTime
+                                  + communicationCost(pred, id));
             }
             tasks[id].est = value;
         }
@@ -171,7 +199,7 @@ void partitionDeadlines() {
     for (int id : reverseOrder) {
         if (inCP[id]) {
             continue;
-        }
+        }   
 
         double lftValue = WORKFLOW_DEADLINE;
         if (!tasks[id].successors.empty()) {

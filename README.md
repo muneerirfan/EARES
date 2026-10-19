@@ -203,9 +203,3 @@ The research paper used as the basis for this implementation:
 *Reliability, Deadline, and Energy-Aware Workflow Scheduling in Cloud Computing.*
 
 Refer to the original publication for the formal mathematical model, algorithm descriptions, and experimental results.
-
-## Author
-
-Developed as an academic C++ project to study energy-aware and reliability-aware workflow scheduling in cloud computing.
-
-Contributions, bug reports, and suggestions for improvement are welcome.

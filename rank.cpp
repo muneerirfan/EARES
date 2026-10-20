@@ -6,8 +6,8 @@ static vector<int> topologicalOrder() {
         ++indegree[edge.to];
     }
 
-    vector<int> order;
-    vector<int> ready;
+    vector<int> order;  //stores the final topological order
+    vector<int> ready;  //stores tasks whose in-degree is zero, meaning they have no remaining predecessors to process
     for (int i = 0; i < TASK_COUNT; ++i) {
         if (indegree[i] == 0) {
             ready.push_back(i);
@@ -16,11 +16,11 @@ static vector<int> topologicalOrder() {
 
     while (!ready.empty()) {
         int u = ready.back();
-        ready.pop_back();
+        ready.pop_back();            //Takes the last task from ready and removes it,adds that task to the output order.
         order.push_back(u);
 
         for (int v : tasks[u].successors) {
-            if (--indegree[v] == 0) {
+            if (--indegree[v] == 0) {   //in-degree becomes zero, all its predecessors have been processed,Add it to ready.
                 ready.push_back(v);
             }
         }
@@ -63,11 +63,11 @@ void computeURanksAndTaskList() {
     taskList.resize(TASK_COUNT);
     iota(taskList.begin(), taskList.end(), 0);
 
-    stable_sort(
+    stable_sort(             
         taskList.begin(),
         taskList.end(),
-        [](int a, int b) {
-            if (fabs(tasks[a].uRank - tasks[b].uRank) > 1e-9) {
+        [](int a, int b) {             ////a and b are task IDs.
+            if (fabs(tasks[a].uRank - tasks[b].uRank) > 1e-9) {    //calculates the absolute difference between their URanks.
                 return tasks[a].uRank > tasks[b].uRank;
             }
             return a < b;
